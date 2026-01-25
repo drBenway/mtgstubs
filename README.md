@@ -2,6 +2,8 @@
 
 A tool for generating Magic: The Gathering cards with official set symbols using the Keyrune icon font. The tool creates an interactive HTML page where you can pick sets and style your proxy cards.
 
+Demo at https://drbenway.github.io/mtgstubs/
+
 ## Features
 
 - 📋 Generate proxy cards for all MTG sets (Core, Expansion, Commander, etc.)
