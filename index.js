@@ -408,13 +408,6 @@ async function generatePDF() {
 
   // Output the generated HTML file
   fs.writeFileSync(HTML_OUTPUT_PATH, html, 'utf8');
-
-  const browser = await puppeteer.launch();
-  const page = await browser.newPage();
-  await page.setContent(html, { waitUntil: 'networkidle0' });
-  //await page.pdf({ path: OUTPUT_PDF_PATH, format: 'A4' });
-  await browser.close();
-  console.log('PDF generated:', OUTPUT_PDF_PATH);
   console.log('HTML generated:', HTML_OUTPUT_PATH);
 }
 
