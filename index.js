@@ -8,7 +8,7 @@ const puppeteer = require('puppeteer');
 
 const TEMPLATE_PATH = path.join(__dirname, 'template.html');
 const OUTPUT_PDF_PATH = path.join(__dirname, 'mtg_proxies.pdf');
-const HTML_OUTPUT_PATH = path.join(__dirname, 'mtg_proxies.html');
+const HTML_OUTPUT_PATH = path.join(__dirname, 'index.html');
 
 let sets = [];
 const core = [
