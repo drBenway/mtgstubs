@@ -1,0 +1,421 @@
+// This script generates a PDF of proxy MTG cards using HTML and Keyrune icons.
+// Requirements: puppeteer, keyrune.css, Keyrune font files in project root.
+// Usage: node generate_proxies_html.js
+
+const fs = require('fs');
+const path = require('path');
+const puppeteer = require('puppeteer');
+
+const TEMPLATE_PATH = path.join(__dirname, 'template.html');
+const OUTPUT_PDF_PATH = path.join(__dirname, 'mtg_proxies.pdf');
+const HTML_OUTPUT_PATH = path.join(__dirname, 'mtg_proxies.html');
+
+let sets = [];
+const core = [
+  { code: 'lea', name: 'Limited Edition Alpha', set: 'core', released: '1993-08-05' },
+  { code: 'leb', name: 'Limited Edition Beta', set: 'core', released: '1993-10-04' },
+  { code: '2ed', name: 'Unlimited Edition', set: 'core', released: '1993-12-01' },
+  { code: '3ed', name: 'Revised', set: 'core', released: '1994-04-01' },
+  { code: '4ed', name: 'Fourth edition', set: 'core', released: '1995-04-01' },
+  { code: 'x4ed', name: 'Alternate 4th Edition', set: 'core', released: '1995-04-01' }, // unofficial, same as 4ed
+  { code: 'psum', name: 'Summer magic', set: 'core', released: '1994-07-01' },
+  { code: '5ed', name: 'Fifth Edition', set: 'core', released: '1997-03-24' },
+  { code: '6ed', name: 'Sixth Edition', set: 'core', released: '1999-04-21' },
+  { code: '7ed', name: 'Seventh Edition', set: 'core', released: '2001-04-11' },
+  { code: '8ed', name: 'Eighth Edition', set: 'core', released: '2003-07-28' },
+  { code: '9ed', name: 'Ninth Edition', set: 'core', released: '2005-07-29' },
+  { code: '10e', name: 'Tenth Edition', set: 'core', released: '2007-07-13' },
+  { code: 'm10', name: 'Magic 2010', set: 'core', released: '2009-07-17' },
+  { code: 'm11', name: 'Magic 2011', set: 'core', released: '2010-07-16' },
+  { code: 'm12', name: 'Magic 2012', set: 'core', released: '2011-07-15' },
+  { code: 'm13', name: 'Magic 2013', set: 'core', released: '2012-07-13' },
+  { code: 'm14', name: 'Magic 2014', set: 'core', released: '2013-07-19' },
+  { code: 'm15', name: 'Magic 2015', set: 'core', released: '2014-07-18' },
+  { code: 'ori', name: 'Magic Origins', set: 'core', released: '2015-07-17' },
+  { code: 'm19', name: 'Magic 2019', set: 'core', released: '2018-07-13' },
+  { code: 'm20', name: 'Magic 2020', set: 'core', released: '2019-07-12' },
+  { code: 'm21', name: 'Magic 2021', set: 'core', released: '2020-07-03' },
+  { code: 'afr', name: 'Adventures in the Forgotten Realms', set: 'core', released: '2021-07-23' },
+  { code: 'fdn', name: 'Foundations', set: 'core', released: '2024-11-15' }];
+const expansionSets = [
+  { code: 'arn', name: 'Arabian Nights', set: 'expansion', released: '1993-12-17' },
+  { code: 'atq', name: 'Antiquities', set: 'expansion', released: '1994-03-04' },
+  { code: 'leg', name: 'Legends', set: 'expansion', released: '1994-06-01' },
+  { code: 'drk', name: 'The Dark', set: 'expansion', released: '1994-08-01' },
+  { code: 'fem', name: 'Fallen Empires', set: 'expansion', released: '1994-11-01' },
+  { code: 'ice', name: 'Ice Age', set: 'expansion', released: '1995-06-03' },
+  { code: 'hml', name: 'Homelands', set: 'expansion', released: '1995-10-01' },
+  { code: 'all', name: 'Alliances', set: 'expansion', released: '1996-06-10' },
+  { code: 'csp', name: 'Coldsnap', set: 'expansion', released: '2006-07-21' },
+  { code: 'mir', name: 'Mirage', set: 'expansion', released: '1996-10-08' },
+  { code: 'vis', name: 'Visions', set: 'expansion', released: '1997-02-03' },
+  { code: 'wth', name: 'Weatherlight', set: 'expansion', released: '1997-06-09' },
+  { code: 'tmp', name: 'Tempest', set: 'expansion', released: '1997-10-14' },
+  { code: 'sth', name: 'Stronghold', set: 'expansion', released: '1998-03-02' },
+  { code: 'exo', name: 'Exodus', set: 'expansion', released: '1998-06-15' },
+  { code: 'usg', name: 'Urza\'s Saga', set: 'expansion', released: '1998-10-12' },
+  { code: 'ulg', name: 'Urza\'s Legacy', set: 'expansion', released: '1999-02-15' },
+  { code: 'uds', name: 'Urza\'s Destiny', set: 'expansion', released: '1999-06-07' },
+  { code: 'mmq', name: 'Mercadian Masques', set: 'expansion', released: '1999-10-04' },
+  { code: 'nem', name: 'Nemesis', set: 'expansion', released: '2000-02-14' },
+  { code: 'pcy', name: 'Prophecy', set: 'expansion', released: '2000-06-05' },
+  { code: 'inv', name: 'Invasion', set: 'expansion', released: '2000-10-02' },
+  { code: 'pls', name: 'Planeshift', set: 'expansion', released: '2001-02-05' },
+  { code: 'apc', name: 'Apocalypse', set: 'expansion', released: '2001-06-04' },
+  { code: 'ody', name: 'Odyssey', set: 'expansion', released: '2001-10-01' },
+  { code: 'tor', name: 'Torment', set: 'expansion', released: '2002-02-04' },
+  { code: 'jud', name: 'Judgement', set: 'expansion', released: '2002-05-27' },
+  { code: 'ons', name: 'Onslaught', set: 'expansion', released: '2002-10-07' },
+  { code: 'lgn', name: 'Legions', set: 'expansion', released: '2003-02-03' },
+  { code: 'scg', name: 'Scourge', set: 'expansion', released: '2003-05-26' },
+  { code: 'mrd', name: 'Mirrodin', set: 'expansion', released: '2003-10-02' },
+  { code: 'dst', name: 'Darksteel', set: 'expansion', released: '2004-02-06' },
+  { code: '5dn', name: 'Fifth Dawn', set: 'expansion', released: '2004-06-04' },
+  { code: 'chk', name: 'Champions of Kamigawa ', set: 'expansion', released: '2004-10-01' },
+  { code: 'bok', name: 'Betrayers of Kamigawa', set: 'expansion', released: '2005-02-04' },
+  { code: 'sok', name: 'Saviors of Kamigawa', set: 'expansion', released: '2005-06-03' },
+  { code: 'rav', name: 'Ravnica', set: 'expansion', released: '2005-10-07' },
+  { code: 'gpt', name: 'Guildpact', set: 'expansion', released: '2006-02-03' },
+  { code: 'dis', name: 'Dissension', set: 'expansion', released: '2006-05-05' },
+  { code: 'tsp', name: 'Time Spiral', set: 'expansion', released: '2006-10-06' },
+  { code: 'plc', name: 'Planar Chaos', set: 'expansion', released: '2007-02-02' },
+  { code: 'fut', name: 'Future Sight', set: 'expansion', released: '2007-05-04' },
+  { code: 'lrw', name: 'Lorwyn', set: 'expansion', released: '2007-10-12' },
+  { code: 'mor', name: 'Morningtide', set: 'expansion', released: '2008-02-01' },
+  { code: 'shm', name: 'Shadowmoor', set: 'expansion', released: '2008-05-02' },
+  { code: 'eve', name: 'Eventide', set: 'expansion', released: '2008-07-25' },
+  { code: 'ala', name: 'Shards of Alara', set: 'expansion', released: '2008-10-03' },
+  { code: 'con', name: 'Conflux', set: 'expansion', released: '2009-02-06' },
+  { code: 'arb', name: 'Alara Reborn', set: 'expansion', released: '2009-04-30' },
+  { code: 'zen', name: 'Zendikar', set: 'expansion', released: '2009-10-02' },
+  { code: 'wwk', name: 'Worldwake', set: 'expansion', released: '2010-02-05' },
+  { code: 'roe', name: 'Rise of the Eldrazi', set: 'expansion', released: '2010-04-23' },
+  { code: 'som', name: 'Scars of Mirrodin', set: 'expansion', released: '2010-10-01' },
+  { code: 'mbs', name: 'Mirrodin Besieged', set: 'expansion', released: '2011-02-04' },
+  { code: 'nph', name: 'New Phyrexia', set: 'expansion', released: '2011-05-13' },
+  { code: 'isd', name: 'Innistrad', set: 'expansion', released: '2011-09-30' },
+  { code: 'dka', name: 'Dark Ascension', set: 'expansion', released: '2012-02-03' },
+  { code: 'avr', name: 'Avacyn Restored', set: 'expansion', released: '2012-05-04' },
+  { code: 'rtr', name: 'Return to Ravnica', set: 'expansion', released: '2012-10-05' },
+  { code: 'gtc', name: 'Gatecrash', set: 'expansion', released: '2013-02-01' },
+  { code: 'dgm', name: 'Dragon\'s Maze', set: 'expansion', released: '2013-05-03' },
+  { code: 'ths', name: 'Theros', set: 'expansion', released: '2013-09-27' },
+  { code: 'bng', name: 'Born of the Gods', set: 'expansion', released: '2014-02-07' },
+  { code: 'jou', name: 'Journey into Nyx', set: 'expansion', released: '2014-05-02' },
+  { code: 'ktk', name: 'Khans of Tarkir', set: 'expansion', released: '2014-09-26' },
+  { code: 'frf', name: 'Fate Reforged', set: 'expansion', released: '2015-01-23' },
+  { code: 'dtk', name: 'Dragons of Tarkir', set: 'expansion', released: '2015-03-27' },
+  { code: 'bfz', name: 'Battle for Zendikar', set: 'expansion', released: '2015-10-02' },
+  { code: 'ogw', name: 'Oath of the Gatewatch', set: 'expansion', released: '2016-01-22' },
+  { code: 'soi', name: 'Shadows over Innistrad', set: 'expansion', released: '2016-04-08' },
+  { code: 'emn', name: 'Eldritch Moon', set: 'expansion', released: '2016-07-22' },
+  { code: 'kld', name: 'Kaladesh', set: 'expansion', released: '2016-09-30' },
+  { code: 'aer', name: 'Aether Revolt', set: 'expansion', released: '2017-01-20' },
+  { code: 'akh', name: 'Amonkhet', set: 'expansion', released: '2017-04-28' },
+  { code: 'hou', name: 'Hour of Devastation', set: 'expansion', released: '2017-07-14' },
+  { code: 'xln', name: 'Ixalan', set: 'expansion', released: '2017-09-29' },
+  { code: 'rix', name: 'Rivals of Ixalan', set: 'expansion', released: '2018-01-19' },
+  { code: 'dom', name: 'Dominaria', set: 'expansion', released: '2018-04-27' },
+  { code: 'grn', name: 'Guilds of Ravnica', set: 'expansion', released: '2018-10-05' },
+  { code: 'rna', name: 'Ravnica Allegiance', set: 'expansion', released: '2019-01-25' },
+  { code: 'war', name: 'War of the Spark', set: 'expansion', released: '2019-05-03' },
+  { code: 'eld', name: 'Throne of Eldraine', set: 'expansion', released: '2019-10-04' },
+  { code: 'thb', name: 'Theros Beyond Death', set: 'expansion', released: '2020-01-24' },
+  { code: 'iko', name: 'Ikoria: Lair of Behemoths', set: 'expansion', released: '2020-05-15' },
+  { code: 'znr', name: 'Zendikar Rising', set: 'expansion', released: '2020-09-25' },
+  { code: 'khm', name: 'Kaldheim', set: 'expansion', released: '2021-02-05' },
+  { code: 'stx', name: 'Strixhaven: School of Mages', set: 'expansion', released: '2021-04-23' },
+  { code: 'mid', name: 'Innistrad: Midnight hunt', set: 'expansion', released: '2021-09-24' },
+  { code: 'vow', name: 'Innistrad: Crimson Vow', set: 'expansion', released: '2021-11-19' },
+  { code: 'neo', name: 'Kamigawa: Neon Dynasty', set: 'expansion', released: '2022-02-18' },
+  { code: 'snc', name: 'Streets of New Capenna', set: 'expansion', released: '2022-04-29' },
+  { code: 'dmu', name: 'Dominaria United', set: 'expansion', released: '2022-09-09' },
+  { code: 'bro', name: 'The Brothers\' War', set: 'expansion', released: '2022-11-18' },
+  { code: 'one', name: 'Phyrexia: All Will Be One', set: 'expansion', released: '2023-02-10' },
+  { code: 'mom', name: 'March of the Machine', set: 'expansion', released: '2023-04-21' },
+  { code: 'mat', name: 'March of the Machine: The Aftermath', set: 'expansion', released: '2023-05-12' },
+  { code: 'woe', name: 'Wilds of Eldraine', set: 'expansion', released: '2023-09-08' },
+  { code: 'lci', name: 'Lost Caverns of Ixalan ', set: 'expansion', released: '2023-11-17' },
+  { code: 'mkm', name: 'Murders at Karlov Manor', set: 'expansion', released: '2024-02-09' },
+  { code: 'otj', name: 'Outlaws of Thunder Junction', set: 'expansion', released: '2024-04-19' },
+  { code: 'big', name: 'The Big Score', set: 'expansion', released: '2024-04-19' },
+  { code: 'blb', name: 'Bloomburrow', set: 'expansion', released: '2024-08-02' },
+  { code: 'dsk', name: 'Duskmourn', set: 'expansion', released: '2024-09-27' },
+  { code: 'dft', name: 'Aetherdrift', set: 'expansion', released: '2025-02-14' },
+  { code: 'tdm', name: 'Tarkir: Dragonstorm ', set: 'expansion', released: '2025-04-11' },
+  { code: 'fin', name:'Final Fantasy', set: 'expansion', released: '2025-06-13' },
+  { code: 'eoe', name: 'Edge of Eternities', set: 'expansion', released: '2025-10-10' },
+  { code: 'spm', name: 'Marvel Spider-Man', set: 'expansion', released: '2025-12-05' },
+  { code: 'tla', name: 'Avatar: The Last Airbender', set: 'expansion', released: '2026-02-06' }];
+const commanderSets = [
+  { code: 'van', name: 'Vanguard', set: 'commander', released: 'unknown' },
+  { code: 'hop', name: 'Planechase', set: 'commander', released: 'unknown' },
+  { code: 'arc', name: 'Archenemy', set: 'commander', released: 'unknown' },
+  { code: 'cmd', name: 'Commander', set: 'commander', released: '2011-06-17' },
+  { code: 'pc2', name: 'Planechase 2012', set: 'commander', released: '2012-09-07' },
+  { code: 'cm1', name: "Commander's Arsenal", set: 'commander', released: '2012-11-02' },
+  { code: 'c13', name: 'Commander 2013', set: 'commander', released: '2013-11-01' },
+  { code: 'cns', name: 'Conspiracy', set: 'commander', released: '2014-06-06' },
+  { code: 'c14', name: 'Commander 2014', set: 'commander', released: '2014-11-07' },
+  { code: 'c15', name: 'Commander 2015', set: 'commander', released: '2015-11-13' },
+  { code: 'cn2', name: 'Conspiracy 2: Take the Crown', set: 'commander', released: '2016-08-26' },
+  { code: 'c16', name: 'Commander 2016', set: 'commander', released: '2016-11-11' },
+  { code: 'pca', name: 'Planechase Anthology', set: 'commander', released: '2016-11-25' },
+  { code: 'cma', name: 'Commander Anthology', set: 'commander', released: '2017-06-09' },
+  { code: 'e01', name: 'Archenemy: Nicol Bolas', set: 'commander', released: '2017-06-16' },
+  { code: 'e02', name: 'Explorers of Ixalan', set: 'commander', released: '2017-11-24' },
+  { code: 'c17', name: 'Commander 2017', set: 'commander', released: '2017-08-25' },
+  { code: 'cm2', name: 'Commander Anthology 2', set: 'commander', released: '2018-06-08' },
+  { code: 'bbd', name: 'Battlebond', set: 'commander', released: '2018-06-08' },
+  { code: 'c18', name: 'Commander 2018', set: 'commander', released: '2018-08-10' },
+  { code: 'c19', name: 'Commander 2019', set: 'commander', released: '2019-08-23' },
+  { code: 'c20', name: 'Ikoria: Commander 2020', set: 'commander', released: '2020-05-15' },
+  { code: 'znc', name: 'Zendikar Rising: Commander Decks', set: 'commander', released: '2020-09-25' },
+  { code: 'cc1', name: 'Commander Collection: Green', set: 'commander', released: '2020-12-04' },
+  { code: 'cmr', name: 'Commander Legends', set: 'commander', released: '2020-11-20' },
+  { code: 'cmc', name: 'Commander Legends Decks', set: 'commander', released: '2020-11-20' },
+  { code: 'khc', name: 'Kaldheim Commander', set: 'commander', released: '2021-02-05' },
+  { code: 'c21', name: 'Commander 2021', set: 'commander', released: '2021-04-23' },
+  { code: 'afc', name: 'Forgotten Realms Commander', set: 'commander', released: '2021-07-23' },
+  { code: 'mic', name: 'Innistrad: Midnight Hunt Commander', set: 'commander', released: '2021-09-24' },
+  { code: 'voc', name: 'Innistrad: Crimson Vow Commander', set: 'commander', released: '2021-11-19' },
+  { code: 'cc2', name: 'Commander Collection: Black', set: 'commander', released: '2022-01-28' },
+  { code: 'nec', name: 'Kamigawa: Neon Dynasty Commander', set: 'commander', released: '2022-02-18' },
+  { code: 'ncc', name: 'Streets of New Capenna: Commander', set: 'commander', released: '2022-04-29' },
+  { code: 'clb', name: "Commander Legends: Battle for Baldur's Gate", set: 'commander', released: '2022-06-10' },
+  { code: 'dmc', name: 'Dominaria United Commander', set: 'commander', released: '2022-09-09' },
+  { code: '40k', name: 'Warhammer 40K', set: 'commander', released: '2022-10-07' },
+  { code: 'brc', name: "The Brothers' War Commander ", set: 'commander', released: '2022-11-18' },
+  { code: 'onc', name: 'Phyrexia: All Will Be One Commander', set: 'commander', released: '2023-02-10' },
+  { code: 'moc', name: 'March of the Machine Commander', set: 'commander', released: '2023-04-21' },
+  { code: 'scd', name: 'Starter Commander Decks', set: 'commander', released: '2022-12-02' },
+  { code: 'cmm', name: 'Commander Masters', set: 'commander', released: '2023-08-04' },
+  { code: 'ltc', name: 'The Lord of the Rings: Tales of Middle-Earth Commander', set: 'commander', released: '2023-06-23' },
+  { code: 'who', name: 'Universes Beyond: Doctor Who', set: 'commander', released: '2023-10-13' },
+  { code: 'woc', name: 'Wilds of Eldraine Commander', set: 'commander', released: '2023-09-08' },
+  { code: 'lcc', name: 'Lost Caverns of Ixalan Commander', set: 'commander', released: '2023-11-17' },
+  { code: 'pip', name: 'Universes Beyond: Fallout', set: 'commander', released: '2024-03-08' },
+  { code: 'mkc', name: 'Murders at Karlov Manor Commander', set: 'commander', released: '2024-02-09' },
+  { code: 'otc', name: 'Outlaws of Thunder Junction Commander ', set: 'commander', released: '2024-04-19' },
+  { code: 'blc', name: 'Bloomburrow Commander', set: 'commander', released: '2024-08-02' },
+  { code: 'm3c', name: 'Modern Horizons 3 Commander', set: 'commander', released: '2024-06-14' },
+  { code: 'dsc', name: 'Duskmourn Commander', set: 'commander', released: '2024-09-27' },
+  { code: 'fdc', name: 'Foundations Commander', set: 'commander', released: '2024-11-15' },
+  { code: 'drc', name: 'Aetherdrift Commander', set: 'commander', released: '2025-02-14' },
+  { code: 'tdc', name: 'Tarkir: Dragonstorm Commander', set: 'commander', released: '2025-04-11' },
+  { code: 'fic', name: 'Final Fantasy Commander', set: 'commander', released: '2025-06-13' },
+  { code: 'eoc', name: 'Edge of Eternities Commander', set: 'commander', released: '2025-08-01' },
+];
+const reprints = [
+  { code: 'chr', name: 'Chronicles', set: 'reprints', released: '1995-07-01' },
+  { code: 'ath', name: 'Anthologies', set: 'reprints', released: '1998-11-01' },
+  { code: 'brb', name: 'Battle Royale', set: 'reprints', released: '1999-11-12' },
+  { code: 'btd', name: 'Beatdown', set: 'reprints', released: '2000-10-01' },
+  { code: 'dkm', name: 'Deckmasters', set: 'reprints', released: '2001-12-01' },
+  { code: 'mma', name: 'Modern Masters', set: 'reprints', released: '2013-06-07' },
+  { code: 'mm2', name: 'Modern Masters 2015', set: 'reprints', released: '2015-05-22' },
+  { code: 'ema', name: 'Eternal Masters', set: 'reprints', released: '2016-06-10' },
+  { code: 'mm3', name: 'Modern Masters 2017', set: 'reprints', released: '2017-03-17' },
+  { code: 'ren', name: 'Renaissance', set: 'reprints', released: '1995-08-01' },
+  { code: 'rin', name: 'Rinascimento', set: 'reprints', released: '1995-08-01' },
+  { code: 'ima', name: 'Iconic Masters', set: 'reprints', released: '2017-11-17' },
+  { code: 'a25', name: 'Masters 25', set: 'reprints', released: '2018-03-16' },
+  { code: 'uma', name: 'Ultimate Masters', set: 'reprints', released: '2018-12-07' },
+  { code: 'mh1', name: 'Modern Horizons', set: 'reprints', released: '2019-06-14' },
+  { code: '2xm', name: 'Double Masters', set: 'reprints', released: '2020-08-07' },
+  { code: 'jmp', name: 'Jumpstart', set: 'reprints', released: '2020-07-17' },
+  { code: 'mb1', name: 'Mystery Booster', set: 'reprints', released: '2020-03-13' },
+  { code: 'mh2', name: 'Modern Horizons 2', set: 'reprints', released: '2021-06-18' },
+  { code: 'sta', name: 'Strixhaven: Mystical Archives', set: 'reprints', released: '2021-04-23' },
+  { code: 'j21', name: 'Jumpstart: Historic Horizons', set: 'reprints', released: '2021-08-26' },
+  { code: '2x2', name: 'Double Masters 2022', set: 'reprints', released: '2022-07-08' },
+  { code: 'brr', name: "The Brothers' War Retro Artifacts", set: 'reprints', released: '2022-11-18' },
+  { code: 'j22', name: 'Jumpstart 2022', set: 'reprints', released: '2022-12-02' },
+  { code: 'mul', name: 'Multiverse Legends', set: 'reprints', released: '2023-11-17' },
+  { code: 'wot', name: 'Wilds of Eldraine Enchanting Tales', set: 'reprints', released: '2023-09-08' },
+  { code: 'br', name: 'Battle Royale (alternate)', set: 'reprints', released: 'unknown' },
+  { code: 'spg', name: 'Special Guests', set: 'reprints', released: '2023-11-17' },
+  { code: 'otp', name: 'Breaking News', set: 'reprints', released: '2024-04-19' },
+  { code: 'mb2', name: 'Mystery Booster 2', set: 'reprints', released: '2024-08-02' },
+  { code: 'j25', name: 'Jumpstart 2025', set: 'reprints', released: '2024-11-15' },
+  { code: 'pio', name: 'Pioneer Masters', set: 'reprints', released: '2024-12-10' },
+  { code: 'fca', name: 'FF: Through the Ages', set: 'reprints', released: '2025-06-13' },
+  { code: 'mar', name: 'Marvel (TBD)', set: 'reprints', released: '2025-09-26' },
+  { code: 'eos', name: 'Stellar Sights', set: 'reprints', released: '2025-08-01' }
+];
+const beginners = [
+  { code: 'por', name: 'Portal', set: 'beginners', released: '1997-05-01' },
+  { code: 'p02', name: 'Portal Second Age', set: 'beginners', released: '1998-06-24' },
+  { code: 'ptk', name: 'Portal Three Kingdoms', set: 'beginners', released: '1999-05-01' },
+  { code: 's99', name: 'Starter 1999', set: 'beginners', released: '1999-07-01' },
+  { code: 's00', name: 'Starter 2000', set: 'beginners', released: '2000-04-01' },
+  { code: 'w16', name: 'Welcome Deck 2016', set: 'beginners', released: '2016-04-08' },
+  { code: 'w17', name: 'Welcome Deck 2017', set: 'beginners', released: '2017-04-15' }
+];
+const dueldecks = [
+  { code: 'evg', name: 'Elves v. Goblins', set: 'dueldecks', released: '2014-12-05' },
+  { code: 'dd2', name: 'Jace v. Chandra', set: 'dueldecks', released: '2008-11-07' },
+  { code: 'ddc', name: 'Divine v. Demonic', set: 'dueldecks', released: '2009-04-10' },
+  { code: 'ddd', name: 'Garruk v. Liliana', set: 'dueldecks', released: '2009-10-30' },
+  { code: 'dde', name: 'Phyrexia v. Coalition', set: 'dueldecks', released: '2010-03-19' },
+  { code: 'ddf', name: 'Elspeth v. Tezzeret', set: 'dueldecks', released: '2010-09-03' },
+  { code: 'ddg', name: 'Knights v. Dragons', set: 'dueldecks', released: '2011-04-01' },
+  { code: 'ddh', name: 'Ajani v. Nicol Bolas', set: 'dueldecks', released: '2011-09-02' },
+  { code: 'ddi', name: 'Venser v. Koth', set: 'dueldecks', released: '2012-03-30' },
+  { code: 'ddj', name: 'Izzet v. Golgari', set: 'dueldecks', released: '2012-09-07' },
+  { code: 'ddk', name: 'Sorin v. Tibalt', set: 'dueldecks', released: '2013-03-15' },
+  { code: 'ddl', name: 'Heroes v. Monsters', set: 'dueldecks', released: '2013-09-06' },
+  { code: 'ddm', name: 'Jace v. Vraska', set: 'dueldecks', released: '2014-03-14' },
+  { code: 'ddn', name: 'Speed v. Cunning', set: 'dueldecks', released: '2014-09-05' },
+  { code: 'ddo', name: 'Kiora v. Elspeth', set: 'dueldecks', released: '2015-02-27' },
+  { code: 'ddp', name: 'Zendikar v. Eldrazi', set: 'dueldecks', released: '2015-08-28' },
+  { code: 'ddq', name: 'Blessed v. Cursed', set: 'dueldecks', released: '2016-02-26' },
+  { code: 'ddr', name: 'Nissa v. Ob Nixilis', set: 'dueldecks', released: '2016-09-02' },
+  { code: 'td2', name: 'New Phyrexia v. Mirrodin Pure', set: 'dueldecks', released: '2011-05-14' },
+  { code: 'dds', name: 'Mind v. Might', set: 'dueldecks', released: '2017-03-31' },
+  { code: 'ddt', name: 'Merfolk v. Goblins', set: 'dueldecks', released: '2017-10-24' },
+  { code: 'ddu', name: 'Elves v. Inventors', set: 'dueldecks', released: '2018-04-06' }
+];
+const fromthevaults = [
+  { code: 'drb', name: 'FTV: Dragons', set: 'fromthevaults', released: '2008-08-29' },
+  { code: 'v09', name: 'FTV: Exiled', set: 'fromthevaults', released: '2009-08-28' },
+  { code: 'v0x', name: 'FTV: Vaults', set: 'fromthevaults', released: 'unknown' },
+  { code: 'v10', name: 'FTV: Relics', set: 'fromthevaults', released: '2010-08-27' },
+  { code: 'v11', name: 'FTV: Legends', set: 'fromthevaults', released: '2011-08-26' },
+  { code: 'v12', name: 'FTV: Realms', set: 'fromthevaults', released: '2012-08-31' },
+  { code: 'v13', name: 'FTV: Twenty', set: 'fromthevaults', released: '2013-08-23' },
+  { code: 'v14', name: 'FTV: Annihilation', set: 'fromthevaults', released: '2014-08-22' },
+  { code: 'v15', name: 'FTV: Angels', set: 'fromthevaults', released: '2015-08-21' },
+  { code: 'v16', name: 'FTV: Lore', set: 'fromthevaults', released: '2016-08-19' },
+  { code: 'v17', name: 'FTV: Transform', set: 'fromthevaults', released: '2017-11-24' }
+];
+const premium = [
+  { code: 'h09', name: 'PDS: Slivers', set: 'premium', released: '2009-11-20' },
+  { code: 'pd2', name: 'PDS: Fire & Lightning', set: 'premium', released: '2010-11-19' },
+  { code: 'pd3', name: 'PDS: Graveborn', set: 'premium', released: '2011-11-18' },
+  { code: 'md1', name: 'Modern Event Deck', set: 'premium', released: '2014-05-30' }
+];
+const spellbooks = [
+  { code: 'ss1', name: 'Jace', set: 'spellbooks', released: '2018-06-15' },
+  { code: 'ss2', name: 'Gideon' , set: 'spellbooks', released: '2019-06-28' },
+  { code: 'ss3', name: 'Chandra' , set: 'spellbooks', released: '2020-06-26' },
+];
+const globalseries = [
+  { code: 'gs1', name: 'Jiang Yanggu & Mu Yanling', set: 'globalseries', released: '2018-06-22' },
+];
+const guildkits = [
+  { code: 'azorius', name: 'Guild Kit: Azorius', set: 'guildkits', released: '2018-11-02' },
+  { code: 'boros', name: 'Guild Kit: Boros', set: 'guildkits', released: '2018-11-02' },
+  { code: 'dimir', name: 'Guild Kit: Dimir', set: 'guildkits', released: '2018-11-02' },
+  { code: 'golgari', name: 'Guild Kit: Golgari', set: 'guildkits', released: '2018-11-02' },
+  { code: 'gruul', name: 'Guild Kit: Gruul', set: 'guildkits', released: '2018-11-02' },
+  { code: 'izzet', name: 'Guild Kit: Izzet', set: 'guildkits', released: '2018-11-02' },
+  { code: 'orzhov', name: 'Guild Kit: Orzhov', set: 'guildkits', released: '2018-11-02' },
+  { code: 'rakdos', name: 'Guild Kit: Rakdos', set: 'guildkits', released: '2018-11-02' },
+  { code: 'selesnya', name: 'Guild Kit: Selesnya', set: 'guildkits', released: '2018-11-02' },
+  { code: 'simic', name: 'Guild Kit: Simic', set: 'guildkits', released: '2018-11-02' }
+];
+const supplement = [
+  { code: 'gnt', name: 'Game Night', set: 'supplements', released: '2018-11-16' },
+  { code: 'gk1', name: 'GRN Guild Kits', set: 'supplements', released: '2018-11-02' },
+  { code: 'gk2', name: 'RNA Guild Kits', set: 'supplements', released: '2019-02-15' },
+  { code: 'gn2', name: 'Game Night 2019', set: 'supplements', released: '2019-11-15' },
+  { code: 'tsr', name: 'Time Spiral Remastered', set: 'supplements', released: '2021-03-19' },
+  { code: 'dmr', name: 'Dominaria Remastered', set: 'supplements', released: '2023-01-13' },
+  { code: 'gn3', name: 'Game Night: Free for All', set: 'supplements', released: '2022-10-14' },
+  { code: 'ltr', name: 'Lord of the Rings', set: 'supplements', released: '2023-06-23' },
+  { code: 'rvr', name: 'Ravnica Remastered', set: 'supplements', released: '2024-01-12' },
+  { code: 'sld', name: 'Secret Lair', set: 'supplements', released: '2019-12-02' },
+  { code: 'sld', name: 'Secret Lair (logo)', set: 'supplements', released: '2019-12-02' },
+  { code: 'clu', name: "Ravnica: Clue Edition", set: 'supplements', released: '2024-02-23' },
+  { code: 'acr', name: "UB: Assassin's Creed", set: 'supplements', released: '2024-07-05' },
+  { code: 'mh3', name: 'Modern Horizons 3', set: 'supplements', released: '2024-06-14' },
+  { code: 'inr', name: 'Innistrad Remastered', set: 'supplements', released: '2025-01-24' },
+  { code: 'spe', name: 'Marvel Spider-Man Scene', set: 'supplements', released: '2025-09-26' }
+];
+const promo = [
+  { code: 'pgru', name: 'Guru Lands', set: 'promo', released: '1999-07-12' },
+  { code: 'pmtg1', name: 'MtG Promo', set: 'promo', released: 'unknown' },
+  { code: 'pmtg2', name: 'MtG Promo (Alt)', set: 'promo', released: 'unknown' },
+  { code: 'pleaf', name: 'Leaf Promo', set: 'promo', released: 'unknown' },
+  { code: 'pmei', name: 'Media Insert', set: 'promo', released: '1995-01-01' },
+  { code: 'parl', name: 'Arena Promo (DCI)', set: 'promo', released: '1996-08-02' },
+  { code: 'dpa', name: 'Duels of the Planeswalkers', set: 'promo', released: '2010-06-04' },
+  { code: 'pbook', name: 'Book Inserts', set: 'promo', released: 'unknown' },
+  { code: 'past', name: 'Astral', set: 'promo', released: '1997-04-01' },
+  { code: 'parl2', name: 'Arena League', set: 'promo', released: 'unknown' },
+  { code: 'parl3', name: 'Arena League (MODO)', set: 'promo', released: 'unknown' },
+  { code: 'exp', name: 'Zendikar Expeditions', set: 'promo', released: '2015-10-02' },
+  { code: 'psalvat05', name: 'Salvat 2005', set: 'promo', released: 'unknown' },
+  { code: 'psalvat11', name: 'Salvat 2011', set: 'promo', released: 'unknown' },
+  { code: 'mp1', name: 'Kaladesh Inventions', set: 'promo', released: 'unknown' },
+  { code: 'pxbox', name: 'Xbox Media Promo', set: 'promo', released: 'unknown' },
+  { code: 'pmps', name: 'Magic Premiere Shop', set: 'promo', released: '2005-10-07' },
+  { code: 'pmpu', name: 'Mirrodin Pure', set: 'promo', released: 'unknown' },
+  { code: 'mp2', name: 'Amonkhet Invocations', set: 'promo', released: '2017-04-28' },
+  { code: 'pidw', name: 'IDW Promo', set: 'promo', released: '2012-01-01' },
+  { code: 'pdrc', name: 'Dragon*Con Promo', set: 'promo', released: '1994-07-15' },
+  { code: 'pheart', name: 'Phoenix Heart (card)', set: 'promo', released: 'unknown' },
+  { code: 'h17', name: 'HasCon 2017', set: 'promo', released: '2017-09-20' },
+  { code: 'pdep', name: 'Duelist: Extra Pulled', set: 'promo', released: 'unknown' },
+  { code: 'psega', name: 'SEGA Dreamcast', set: 'promo', released: 'unknown' },
+  { code: 'ptsa', name: "The Sorcerer's Apprentice", set: 'promo', released: 'unknown' },
+  { code: 'htr', name: 'Heroes of the Realm', set: 'promo', released: 'unknown' },
+  { code: 'med', name: 'Mythic Edition', set: 'promo', released: '2018-10-05' },
+  { code: 'ptg', name: 'Ponies: the Galloping', set: 'promo', released: '2019-10-22' },
+  { code: 'j20', name: 'Judge Academy 2020', set: 'promo', released: '2020-01-01' },
+  { code: 'zne', name: 'Zendikar Rising Expeditions', set: 'promo', released: '2020-09-25' },
+  { code: 'bot', name: "The Brothers' War Transformers", set: 'promo', released: '2022-11-18' },
+  { code: 'rex', name: 'Jurassic World', set: 'promo', released: '2023-11-17' }
+];
+const unserious = [
+  { code: 'ugl', name: 'Unglued', set: 'unserious', released: '1998-08-11' },
+  { code: 'unh', name: 'Unhinged', set: 'unserious', released: '2004-11-19' },
+  { code: 'ust', name: 'Unstable', set: 'unserious', released: '2017-12-08' },
+  { code: 'und', name: 'Unsanctioned', set: 'unserious', released: '2020-02-29' },
+  { code: 'unf', name: 'Unfinity', set: 'unserious', released: '2022-10-07' },
+  { code: 'una', name: 'Unfinity Acorns', set: 'unserious', released: 'unknown' }
+];
+const unofficial = [
+  { code: 'xcle', name: "Collector's Edition", set: 'unofficial', released: '1993-12-10' },
+  { code: 'xice', name: 'International Collector\'s Edition', set: 'unofficial', released: '1993-12-10' },
+  { code: 'x2ps', name: 'Two Player Introductory Set', set: 'unofficial', released: '1996-12-31' },
+  { code: 'x4ea', name: 'Alternate 4th Edition', set: 'unofficial', released: '1995-11-20' },
+  { code: 'papac', name: 'APAC Lands', set: 'unofficial', released: '1998-09-01' },
+  { code: 'peuro', name: 'Euro Lands', set: 'unofficial', released: '2000-02-05' },
+  { code: 'pfnm', name: 'Friday Night Magic', set: 'unofficial', released: 'unknown' },
+  { code: '30a', name: '30th Anniversary Edition', set: 'unofficial', released: '2022-11-28' }
+];
+sets =[...core,...expansionSets,...commanderSets,...reprints,...beginners,...dueldecks,...fromthevaults,...premium,...spellbooks,...globalseries,...guildkits,...supplement,...promo,...unserious,...unofficial];
+
+
+function generateCardsHTML() {
+
+  return sets.map(set => `
+    <div class="card ${set.set}" >
+      <i class="set-logo ss ss-${set.code}"></i>
+      <span class="set-name">${set.name}</span>
+      <span class="set-releasedate">( ${set.released} )</span>
+    </div>
+  `).join('\n');
+}
+
+async function generatePDF() {
+  const template = fs.readFileSync(TEMPLATE_PATH, 'utf8');
+  const cardsHTML = generateCardsHTML();
+  console.log(cardsHTML);
+  const html = template.replace('<!-- Cards will be injected here -->', cardsHTML);
+
+  // Output the generated HTML file
+  fs.writeFileSync(HTML_OUTPUT_PATH, html, 'utf8');
+
+  const browser = await puppeteer.launch();
+  const page = await browser.newPage();
+  await page.setContent(html, { waitUntil: 'networkidle0' });
+  //await page.pdf({ path: OUTPUT_PDF_PATH, format: 'A4' });
+  await browser.close();
+  console.log('PDF generated:', OUTPUT_PDF_PATH);
+  console.log('HTML generated:', HTML_OUTPUT_PATH);
+}
+
+generatePDF();

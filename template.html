@@ -1,0 +1,368 @@
+<!--
+  This HTML template will be used to generate the PDF. It expects Keyrune CSS and font to be present in the project directory.
+  The script will inject the set cards into the <body>.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>MTG Proxy Cards</title>
+  <link rel="stylesheet" href="./keyrune.css">
+
+  <style>
+    :root {
+      --card-border-width: 5mm;
+      --card-border-color: black;
+      --card-width: 63mm;
+      --card-height: 87mm;
+      --card-border-radius: 3mm;
+      --card-background-color: white;
+      --card-font-color: black;
+      --card-logo-color: black;
+      --logo-margin-top: 10mm;
+      --logo-margin-bottom: 10mm;
+      --font-size-logo: 80px;
+      --font-size-set-name: 24px;
+      --font-size-set-releasedate: 18px;
+    }
+    body { font-family: Arial, sans-serif; }
+
+    main {
+      width: 210mm;
+      margin: 0 auto;
+      padding: 10mm 0;
+      box-sizing: border-box;
+      display: grid;
+      grid-template-columns: repeat(3, var(--card-width));
+      grid-template-rows: repeat(3, var(--card-height));
+      gap: 3px;
+      justify-content: center;
+    }
+    .card {
+      width: var(--card-width);
+      height: var(--card-height);
+      border-width: var(--card-border-width);
+      border-style: solid;
+      border-color: var(--card-border-color);
+      border-radius: var(--card-border-radius);
+      margin: 3px;
+      display: none;
+      float: left;
+      align-items: center;
+      text-align: center;
+      padding: 16px;
+      box-sizing: border-box;
+      background-color: var(--card-background-color);
+      position: relative;
+      z-index: 1;
+    }
+    .card::before {
+      content: "";
+      position: absolute;
+      top: calc(var(--card-border-width) * -1);
+      left: calc(var(--card-border-width) * -1);
+      right: calc(var(--card-border-width) * -1);
+      bottom: calc(var(--card-border-width) * -1);
+      border: 1mm solid black;
+      border-radius: inherit;
+      pointer-events: none;
+      z-index: 2;
+    }
+    .set-logo {
+      font-size: var(--font-size-logo);
+      color: var(--card-logo-color);
+      margin-top: var(--logo-margin-top);
+      margin-bottom: var(--logo-margin-bottom);
+      display:block;
+      text-align: center;
+    }
+    .set-name {
+      font-size: var(--font-size-set-name);
+        color: var(--card-font-color);
+      font-weight: bold;
+      display: block;
+      text-align: center;
+    }
+    .set-releasedate{
+      font-size: var(--font-size-set-releasedate);
+      color: var(--card-font-color);
+      font-weight: bold;
+      display: block;
+      text-align: center;
+      margin-top: 5mm;
+    }
+    .configurator{
+      display: grid;
+      grid-template-columns: auto auto auto;
+        gap: 10px;
+      margin: 10px;
+      border: 1px solid black;
+      padding: 10px;
+    }
+
+  </style>
+
+  <link rel="stylesheet" href="./print.css" media="print" id="printstylesheet">
+
+  <script>
+    /**
+     * Inline all computed styles for elements that have class names,
+     * then remove their class attribute.
+     * Run after all dynamic styling is settled.
+     * @param {ParentNode} scope optional subtree (default: document)
+     * @param {Function} filter optional predicate (prop, value, element) => boolean to keep property
+     * @returns {number} number of elements modified
+     */
+    function inlineClasses(scope = document, filter) {
+      const elements = Array.from(scope.querySelectorAll('[class]'));
+      let count = 0;
+
+      elements.forEach(el => {
+        const classes = el.classList;
+        if (!classes.length) return;
+
+        const computed = getComputedStyle(el);
+        // Collect all CSS properties exposed by computed style
+        const props = Array.from(computed);
+
+        const existingInline = el.getAttribute('style');
+        const declarations = [];
+
+        for (const prop of props) {
+          const value = computed.getPropertyValue(prop).trim();
+          if (!value) continue;
+          if (filter && !filter(prop, value, el)) continue;
+          // Skip overly verbose inherited defaults (optional heuristic)
+          if (prop === 'font-weight' && value === '400') continue;
+          if (prop === 'line-height' && value === 'normal') continue;
+          declarations.push(`${prop}: ${value};`);
+        }
+
+        // Preserve existing inline style (place it last so it wins)
+        if (existingInline) {
+          declarations.push(existingInline.trim().replace(/;?\s*$/, ';'));
+        }
+
+        el.setAttribute('style', declarations.join(' '));
+        el.removeAttribute('class');
+        count++;
+      });
+
+      return count;
+    }
+
+    function getRootCustomProperties() {
+      const root = document.documentElement;
+      const computed = getComputedStyle(root);
+      const vars = Array.from(computed)
+              .filter(name => name.startsWith('--'))
+              .reduce((acc, name) => {
+                acc[name] = computed.getPropertyValue(name).trim();
+                return acc;
+              }, {});
+      return vars;
+    }
+
+    // Example: convert to a print override <style>
+    function injectPrintVars() {
+      const vars = getRootCustomProperties();
+      const css = ':root {\n' + Object.entries(vars)
+              .map(([k, v]) => `  ${k}: ${v};`)
+              .join('\n') + '\n}';
+
+      document.getElementById('print-inline-vars')?.remove();
+      const style = document.createElement('style');
+      style.id = 'print-inline-vars';
+      style.media = 'print';
+      style.textContent = css;
+      let printStylesheet = document.getElementById('printstylesheet');
+      // insert before print stylesheet to ensure it has precedence
+      let head =printStylesheet.parentNode;
+        head.insertBefore(style, printStylesheet);
+
+    }
+
+    // Usage before printing
+    window.addEventListener('beforeprint', () => {
+      injectPrintVars();
+      void document.body.offsetHeight;
+    });
+
+    document.addEventListener("DOMContentLoaded", function() {
+      const borderSelect = document.getElementById("border");
+      const backgroundColorPicker = document.getElementById("backgroundcp");
+      const fontColorPicker = document.getElementById("fontcolor");
+      const logoColorPicker = document.getElementById("logocolor");
+      const printButton = document.getElementById("generate-pdf");
+
+      // Get all category checkboxes
+      const coreCheckbox = document.getElementById("core");
+      const expansionCheckbox = document.getElementById("expansion");
+      const commanderCheckbox = document.getElementById("commander");
+      const reprintsCheckbox = document.getElementById("reprints");
+      const beginnersCheckbox = document.getElementById("beginners");
+      const dueldecksCheckbox = document.getElementById("dueldecks");
+      const fromthevaultsCheckbox = document.getElementById("fromthevaults");
+      const premiumCheckbox = document.getElementById("premium");
+      const spellbooksCheckbox = document.getElementById("spellbooks");
+      const globalseriesCheckbox = document.getElementById("globalseries");
+      const guildkitsCheckbox = document.getElementById("guildkits");
+      const supplementsCheckbox = document.getElementById("supplements");
+      const promoCheckbox = document.getElementById("promo");
+      const unseriousCheckbox = document.getElementById("unserious");
+      const unofficialCheckbox = document.getElementById("unofficial");
+
+      // Function to get all checked categories
+      function getCheckedCategories() {
+        const checkboxes = [
+          coreCheckbox,
+          expansionCheckbox,
+          commanderCheckbox,
+          reprintsCheckbox,
+          beginnersCheckbox,
+          dueldecksCheckbox,
+          fromthevaultsCheckbox,
+          premiumCheckbox,
+          spellbooksCheckbox,
+          globalseriesCheckbox,
+          guildkitsCheckbox,
+          supplementsCheckbox,
+          promoCheckbox,
+          unseriousCheckbox,
+          unofficialCheckbox
+        ];
+
+        return checkboxes
+          .filter(checkbox => checkbox.checked)
+          .map(checkbox => checkbox.id);
+      }
+
+      // Function to be called when categories change
+function updateList(checkedCategories) {
+  console.log("Checked categories:", checkedCategories);
+
+  // Get the dynamic rules stylesheet
+  const styleSheet = document.getElementById('dynamic-rules');
+
+  // Clear existing rules by deleting them one by one
+  while (styleSheet.sheet.cssRules.length > 0) {
+    styleSheet.sheet.deleteRule(0);
+  }
+
+  // Add display:block rule for each checked category
+  checkedCategories.forEach(category => {
+    let rule = `.card.${category} { display: block; }`;
+    styleSheet.sheet.insertRule(rule, 0);
+  });
+}
+
+      // Add change event listeners to all checkboxes
+      const categoryCheckboxes = [
+        coreCheckbox,
+        expansionCheckbox,
+        commanderCheckbox,
+        reprintsCheckbox,
+        beginnersCheckbox,
+        dueldecksCheckbox,
+        fromthevaultsCheckbox,
+        premiumCheckbox,
+        spellbooksCheckbox,
+        globalseriesCheckbox,
+        guildkitsCheckbox,
+        supplementsCheckbox,
+        promoCheckbox,
+        unseriousCheckbox,
+        unofficialCheckbox
+      ];
+
+      categoryCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener("change", function() {
+          const checkedCategories = getCheckedCategories();
+          updateList(checkedCategories);
+        });
+      });
+
+      // Initial call with default checked state
+      updateList(getCheckedCategories());
+
+      borderSelect.addEventListener("change", function() {
+          document.documentElement.style.setProperty('--card-border-color', this.value);
+      });
+
+      backgroundColorPicker.addEventListener("change", function() {
+            document.documentElement.style.setProperty('--card-background-color', this.value);
+      })
+
+      fontColorPicker.addEventListener("change", function() {
+            document.documentElement.style.setProperty('--card-font-color', this.value);
+      })
+
+      logoColorPicker.addEventListener("change", function() {
+            document.documentElement.style.setProperty('--card-logo-color', this.value);
+      })
+
+      printButton.addEventListener("click", function() {
+          console.log("print");
+          void document.body.offsetHeight;
+            window.print();
+        });
+
+
+    });
+  </script>
+  <style id="dynamic-rules" media="screen,print">
+    /* Dynamic rules for category visibility will be injected here */
+    .foo{ display:none; }
+    </style>
+</head>
+<body>
+<h1 class="noprint">MTG set deviders</h1>
+<div class="configurator noprint">
+<label>Border color:
+  <select name="border" id="border">
+    <option value="white">White</option>
+    <option value="black" selected>Black</option>
+    <option value="silver">Silver</option>
+    <option value="gold">Gold</option>
+  </select>
+</label>
+
+<label>Background color:
+  <input type="color" id="backgroundcp" name="backgroundcp" value="#ffffff" />
+</label>
+
+<label>Text color:
+  <input type="color" id="fontcolor" name="fontcolor" value="#000000" />
+</label>
+
+<label>Logo color:
+  <input type="color" id="logocolor" name="logocolor" value="#000000" />
+</label>
+
+<label>Font size logo (mm):
+  <input type="number" id="fontsizelogo" min="9"  />
+</label>
+
+<input type="button" id="generate-pdf" value="Generate PDF" />
+  <h2 style="grid-column: 1 / -1">Add / remove sets</h2>
+<label><input type="checkbox" checked id="core" />Core sets</label>
+<label><input type="checkbox" checked id="expansion" />Expansion sets</label>
+<label><input type="checkbox" checked id="commander" />Commander sets</label>
+<label><input type="checkbox" checked id="reprints" />Reprints</label>
+<label><input type="checkbox" checked id="beginners" />Beginners</label>
+<label><input type="checkbox" checked id="dueldecks" />Duel decks</label>
+<label><input type="checkbox" checked id="fromthevaults" />From the vaults</label>
+<label><input type="checkbox" checked id="premium" />Premium</label>
+<label><input type="checkbox" checked id="spellbooks" />Spellbooks</label>
+<label><input type="checkbox" checked id="globalseries" />Global series</label>
+<label><input type="checkbox" checked id="guildkits" />Guild kits</label>
+<label><input type="checkbox" checked id="supplements" />Supplements</label>
+<label><input type="checkbox" checked id="promo" />Promo</label>
+<label><input type="checkbox" checked id="unserious" />Un-serious</label>
+<label><input type="checkbox" checked id="unofficial" />Unofficial</label>
+</div>
+<main>
+  <!-- Cards will be injected here -->
+</main>
+</body>
+</html>

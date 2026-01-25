@@ -1,0 +1,76 @@
+@media print {
+
+    @page{
+        margin: 10mm 10mm 10mm 10mm; // make sure we have margin for printers without borderless printing.
+    }
+
+
+    body {
+        margin: 0;
+        -webkit-print-color-adjust: exact;
+    }
+    .noprint{ display: none; }
+    main {
+        width: 210mm;
+        margin: 0 auto;
+        box-sizing: border-box;
+        display: grid;
+        grid-template-columns: repeat(3, var(--card-width));
+        grid-template-rows: repeat(3, var(--card-height));
+        gap: 3px;
+        justify-content: center;
+    }
+
+    .card {
+        width: var(--card-width);
+        height: var(--card-height);
+        border-width: var(--card-border-width);
+        border-style: solid;
+        border-color: var(--card-border-color);
+        border-radius: var(--card-border-radius);
+        margin: 3px;
+        display: none;
+        /*float: left;*/
+        align-items: center;
+        padding: 16px;
+        box-sizing: border-box;
+        /*background-color: red;*/
+        background-color: var(--card-background-color);
+        position: relative;
+        z-index: 1;
+        /* custom for print*/
+        break-inside: avoid; // prevent cards from being split across pages
+        page-break-inside: avoid; // prevent cards from being split across pages
+    }
+
+    /*
+    * add a border outside of the card border (for cutting purposes with white boarderd cards)
+    */
+    .card::before {
+        content: "";
+        position: absolute;
+        top: calc(var(--card-border-width) * -1);
+        left: calc(var(--card-border-width) * -1);
+        right: calc(var(--card-border-width) * -1);
+        bottom: calc(var(--card-border-width) * -1);
+        border: 1mm solid black;
+        border-radius: inherit;
+        pointer-events: none;
+        z-index: 2;
+    }
+    .set-logo {
+        font-size: var(--font-size-logo);
+        color: var(--card-logo-color);
+        margin-top: var(--logo-margin-top);
+        margin-bottom: var(--logo-margin-bottom);
+        display:block;
+        text-align: center;
+    }
+    .set-name {
+        font-size: var(--font-size-set-name);
+        color: var(--card-font-color);
+        font-weight: bold;
+        display: block;
+        text-align: center;
+    }
+}
