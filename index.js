@@ -144,9 +144,15 @@ const expansionSets = [
   { code: 'dft', name: 'Aetherdrift', set: 'expansion', released: '2025-02-14' },
   { code: 'tdm', name: 'Tarkir: Dragonstorm ', set: 'expansion', released: '2025-04-11' },
   { code: 'fin', name:'Final Fantasy', set: 'expansion', released: '2025-06-13' },
-  { code: 'eoe', name: 'Edge of Eternities', set: 'expansion', released: '2025-10-10' },
-  { code: 'spm', name: 'Marvel Spider-Man', set: 'expansion', released: '2025-12-05' },
-  { code: 'tla', name: 'Avatar: The Last Airbender', set: 'expansion', released: '2026-02-06' }];
+  { code: 'eoe', name: 'Edge of Eternities', set: 'expansion', released: '2025-08-01' },
+  { code: 'spm', name: 'Marvel Spider-Man', set: 'expansion', released: '2025-09-26' },
+  { code: 'tla', name: 'Avatar: The Last Airbender', set: 'expansion', released: '2025-11-21' }]
+  { code: 'ecl', name: 'Lorwyn Eclypsed', set: 'expansion', released: '2026-01-23' }],
+  { code: 'tmt', name: 'Teenage mutant Ninja Turtles', set: 'expansion', released: '2026-03-06' }],
+  { code: 'sos', name: 'Secrets of strixhaven', set: 'expansion', released: '2026-04-24' }],  
+  { code: 'msh', name: 'Marvel Super Heroes', set: 'expansion', released: '2026-06-26' }],  
+  { code: 'hob', name: 'The Hobbit', set: 'expansion', released: '2026-08-14' }],  
+  { code: 'ecl', name: 'Reality Fracture', set: 'expansion', released: '2026-10-02' }];
 const commanderSets = [
   { code: 'van', name: 'Vanguard', set: 'commander', released: 'unknown' },
   { code: 'hop', name: 'Planechase', set: 'commander', released: 'unknown' },
