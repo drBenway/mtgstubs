@@ -53,8 +53,19 @@
       padding: 16px;
       box-sizing: border-box;
       background-color: var(--card-background-color);
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      background-origin: padding-box;
+      background-clip: padding-box;
       position: relative;
       z-index: 1;
+    }
+    .card.bg-furu1 {
+      background-image: url("./backgrounds/furu1.png");
+    }
+    .card.bg-furu2 {
+      background-image: url("./backgrounds/furu2.png");
     }
     .card::before {
       content: "";
@@ -191,6 +202,7 @@
     document.addEventListener("DOMContentLoaded", function() {
       const borderSelect = document.getElementById("border");
       const backgroundColorPicker = document.getElementById("backgroundcp");
+      const backgroundImageSelect = document.getElementById("backgroundimage");
       const fontColorPicker = document.getElementById("fontcolor");
       const logoColorPicker = document.getElementById("logocolor");
       const printButton = document.getElementById("generate-pdf");
@@ -293,6 +305,15 @@ function updateList(checkedCategories) {
             document.documentElement.style.setProperty('--card-background-color', this.value);
       })
 
+      backgroundImageSelect.addEventListener("change", function() {
+            document.querySelectorAll(".card").forEach(card => {
+              card.classList.remove("bg-furu1", "bg-furu2");
+              if (this.value !== "none") {
+                card.classList.add(this.value);
+              }
+            });
+      })
+
       fontColorPicker.addEventListener("change", function() {
             document.documentElement.style.setProperty('--card-font-color', this.value);
       })
@@ -329,6 +350,14 @@ function updateList(checkedCategories) {
 
 <label>Background color:
   <input type="color" id="backgroundcp" name="backgroundcp" value="#ffffff" />
+</label>
+
+<label>Background image:
+  <select name="backgroundimage" id="backgroundimage">
+    <option value="none" selected>None</option>
+    <option value="bg-furu1">furu1</option>
+    <option value="bg-furu2">furu2</option>
+  </select>
 </label>
 
 <label>Text color:

@@ -36,11 +36,23 @@
         box-sizing: border-box;
         /*background-color: red;*/
         background-color: var(--card-background-color);
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-origin: padding-box;
+        background-clip: padding-box;
         position: relative;
         z-index: 1;
         /* custom for print*/
         break-inside: avoid; // prevent cards from being split across pages
         page-break-inside: avoid; // prevent cards from being split across pages
+    }
+
+    .card.bg-furu1 {
+        background-image: url("./backgrounds/furu1.png");
+    }
+    .card.bg-furu2 {
+        background-image: url("./backgrounds/furu2.png");
     }
 
     /*

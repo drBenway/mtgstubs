@@ -48,6 +48,9 @@ jobs:
           if [ -d "fonts" ]; then
             cp -r fonts docs/
           fi
+          if [ -d "backgrounds" ]; then
+            cp -r backgrounds docs/
+          fi
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
