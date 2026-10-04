@@ -211,6 +211,11 @@ const commanderSets = [
   { code: 'tdc', name: 'Tarkir: Dragonstorm Commander', set: 'commander', released: '2025-04-11' },
   { code: 'fic', name: 'Final Fantasy Commander', set: 'commander', released: '2025-06-13' },
   { code: 'eoc', name: 'Edge of Eternities Commander', set: 'commander', released: '2025-08-01' },
+  { code: 'ecc', name: 'Lorwyn Eclipsed Commander ', set: 'commander', released: '2026-01-23' },
+  { code: 'tmc', name: 'Teenage Mutant Ninja Turtles Eternal-Legal', set: 'commander', released: '2026-03-06' },
+  { code: 'soc', name: 'Secrets of Strixhaven Commander', set: 'commander', released: '2026-04-24' },
+  { code: 'soc', name: 'Marvel Super Heroes Commander', set: 'commander', released: '2026-06-26' },
+  { code: 'soc', name: 'The Hobbit Eternal', set: 'commander', released: '2026-08-14' },
 ];
 const reprints = [
   { code: 'chr', name: 'Chronicles', set: 'reprints', released: '1995-07-01' },
