@@ -214,8 +214,8 @@ const commanderSets = [
   { code: 'ecc', name: 'Lorwyn Eclipsed Commander ', set: 'commander', released: '2026-01-23' },
   { code: 'tmc', name: 'Teenage Mutant Ninja Turtles Eternal-Legal', set: 'commander', released: '2026-03-06' },
   { code: 'soc', name: 'Secrets of Strixhaven Commander', set: 'commander', released: '2026-04-24' },
-  { code: 'soc', name: 'Marvel Super Heroes Commander', set: 'commander', released: '2026-06-26' },
-  { code: 'soc', name: 'The Hobbit Eternal', set: 'commander', released: '2026-08-14' },
+  { code: 'msc', name: 'Marvel Super Heroes Commander', set: 'commander', released: '2026-06-26' },
+  { code: 'hoc', name: 'The Hobbit Eternal', set: 'commander', released: '2026-08-14' }
 ];
 const reprints = [
   { code: 'chr', name: 'Chronicles', set: 'reprints', released: '1995-07-01' },
