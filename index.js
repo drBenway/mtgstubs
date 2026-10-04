@@ -146,7 +146,7 @@ const expansionSets = [
   { code: 'fin', name:'Final Fantasy', set: 'expansion', released: '2025-06-13' },
   { code: 'eoe', name: 'Edge of Eternities', set: 'expansion', released: '2025-08-01' },
   { code: 'spm', name: 'Marvel Spider-Man', set: 'expansion', released: '2025-09-26' },
-  { code: 'tla', name: 'Avatar: The Last Airbender', set: 'expansion', released: '2025-11-21' }]
+  { code: 'tla', name: 'Avatar: The Last Airbender', set: 'expansion', released: '2025-11-21' }],
   { code: 'ecl', name: 'Lorwyn Eclypsed', set: 'expansion', released: '2026-01-23' }],
   { code: 'tmt', name: 'Teenage mutant Ninja Turtles', set: 'expansion', released: '2026-03-06' }],
   { code: 'sos', name: 'Secrets of strixhaven', set: 'expansion', released: '2026-04-24' }],  
