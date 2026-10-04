@@ -152,7 +152,7 @@ const expansionSets = [
   { code: 'sos', name: 'Secrets of strixhaven', set: 'expansion', released: '2026-04-24' }],  
   { code: 'msh', name: 'Marvel Super Heroes', set: 'expansion', released: '2026-06-26' }],  
   { code: 'hob', name: 'The Hobbit', set: 'expansion', released: '2026-08-14' }],  
-  { code: 'ecl', name: 'Reality Fracture', set: 'expansion', released: '2026-10-02' }];
+  { code: 'fra', name: 'Reality Fracture', set: 'expansion', released: '2026-10-02' }];
 const commanderSets = [
   { code: 'van', name: 'Vanguard', set: 'commander', released: 'unknown' },
   { code: 'hop', name: 'Planechase', set: 'commander', released: 'unknown' },
